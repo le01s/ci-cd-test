@@ -1,0 +1,26 @@
+name: Deploy to VPS
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_KEY }}" > ~/.ssh/cicd.pub
+          chmod 600 ~/.ssh/cicd.pub
+          ssh-keyscan -H ${{ secrets.HOST }} >> ~/.ssh/known_hosts
+
+      - name: Deploy to VPS
+        run: |
+          rsync -avz --exclude '.git' ./ ${{ secrets.USER }}@${{ secrets.HOST }}:/home/${{ secrets.USER }}/ci-cd-demo
+          ssh ${{ secrets.USER }}@${{ secrets.HOST }} "cd /home/${{ secrets.USER }}/ci-cd-demo && docker-compose up --build -d"
